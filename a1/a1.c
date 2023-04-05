@@ -46,6 +46,75 @@ int verif_size(char s[]){
     return ok;
 }
 
+void listare_rec(char path[], int smaller, char start[], int ok){
+    DIR *dir = NULL;
+    struct dirent *entry = NULL;
+    char fullPath[512];
+    struct stat statbuf;
+    dir = opendir(path);
+    if(dir == NULL) {
+        printf("ERROR\n");
+        printf("invalid directory path\n");
+        return;
+    }
+    else if(ok == 0){
+        printf("SUCCESS\n");
+        ok++;
+    }
+    while((entry = readdir(dir)) != NULL) {
+        if(strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
+            snprintf(fullPath, 512, "%s/%s", path, entry->d_name);
+            if(lstat(fullPath, &statbuf) == 0) {
+                if(S_ISDIR(statbuf.st_mode) == 0){
+                    if(smaller != 0 && statbuf.st_size < smaller){
+                        printf("%s\n", fullPath);
+                    }
+                    else if(strcmp(start, "") != 0){
+                        if(strstr(entry->d_name, start) != NULL)
+                            if(strcmp(strstr(entry->d_name, start), entry->d_name) == 0)
+                                printf("%s\n", fullPath); 
+                    }
+                    else if(strcmp(start, "") == 0 && smaller == 0) printf("%s\n", fullPath);
+                }
+                else{
+                    if(strcmp(start, "") == 0 && smaller == 0) printf("%s\n", fullPath);
+                    listare_rec(fullPath, smaller, start, ok);
+                }
+            }
+        }
+    }
+}
+
+void listare_nerec(char path[], int smaller, char start[]){
+    DIR *dir = NULL;
+    struct dirent *entry = NULL;
+    char fullPath[512];
+    struct stat statbuf;
+    dir = opendir(path);
+    if(dir == NULL) {
+        printf("ERROR\n");
+        printf("invalid directory path\n");
+        return;
+    }
+    printf("SUCCESS\n");
+    while((entry = readdir(dir)) != NULL) {
+        if(strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
+            snprintf(fullPath, 512, "%s/%s", path, entry->d_name);
+            if(lstat(fullPath, &statbuf) == 0) {
+                if(smaller != 0 && statbuf.st_size < smaller){
+                    printf("%s\n", fullPath);
+                }
+                else if(strcmp(start, "") != 0){
+                    if(strstr(entry->d_name, start) != NULL)
+                        if(strcmp(strstr(entry->d_name, start), entry->d_name) == 0)
+                            printf("%s\n", fullPath); 
+                }
+                else if(strcmp(start, "") == 0 && smaller == 0) printf("%s\n", fullPath);
+            }
+        }
+    }
+}
+
 void findall(char s[], int ok){
     DIR *dir = NULL;
     struct dirent *entry = NULL;
@@ -150,6 +219,23 @@ int main(int argc, char **argv){
             int ok = 0;
             sscanf(argv[2], "path=%s", s);
             findall(s, ok);
+        }
+        else if(strcmp(argv[1], "list") == 0){
+            char path[200] = "", start[50] = "";
+            int smaller = 0, recursiv = 0;
+            for(int i = 2; i < argc; i++){
+                if(strcmp(argv[i], "recursive") == 0) recursiv++;
+                else if(strstr(argv[i], "path") != NULL) sscanf(argv[i], "path=%s", path);
+                else if(strstr(argv[i], "size_smaller") != NULL) sscanf(argv[i], "size_smaller=%d", &smaller);
+                else if(strstr(argv[i], "name_starts_with") != NULL) sscanf(argv[i], "name_starts_with=%s", start);
+            }
+            if(recursiv == 0){
+                listare_nerec(path, smaller, start);
+            }
+            else{
+                int ok = 0;
+                listare_rec(path, smaller, start, ok);
+            }
         }
     }
     return 0;
