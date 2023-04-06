@@ -12,12 +12,13 @@ typedef struct sectiune{
     int sect_offset;
     int sect_size;
     char sect_name[9];
-}sectiune;
+}sec;
 
 int verif_size(char s[]){
     int fd = -1, header_size = 0, version = 0, numar_sectiuni = 0, ok = 0;
     fd = open(s, O_RDONLY);
-    char magic[2];
+    char* magic;
+    magic = (char*)malloc(3 * sizeof(char));
     magic[2] = '\0';
     read(fd, magic, 2);
     read(fd, &header_size, 2);
@@ -26,7 +27,8 @@ int verif_size(char s[]){
     if(strcmp(magic, "QP") != 0) ok = 1;
     if(version < 112 || version > 140) ok = 1;
     if(numar_sectiuni < 3 || numar_sectiuni > 17) ok = 1;
-    struct sectiune sect[numar_sectiuni];
+    struct sectiune* sect;
+    sect = (sec*)malloc(numar_sectiuni * sizeof(sec));
     for(int i = 0; i < numar_sectiuni; i++){
         read(fd, sect[i].sect_name, 9);
         sect[i].sect_name[9] = '\0';
@@ -148,18 +150,32 @@ void findall(char s[], int ok){
 }
 
 void parse_fct(char s[]){
-    int fd = -1, ok_m = 0, header_size = 0, version = 0, numar_sectiuni = 0, ok_v = 0, ok_nr = 0, ok_tip = 0;
+    int fd = -1, header_size = 0, version = 0, numar_sectiuni = 0;
     fd = open(s, O_RDONLY);
-    char magic[2];
+    char* magic;
+    magic = (char*)malloc(3 * sizeof(char));
     magic[2] = '\0';
     read(fd, magic, 2);
-    if(strcmp(magic, "QP") != 0) ok_m = 1;
+    if(strcmp(magic, "QP") != 0){
+        printf("ERROR\n");
+        printf("wrong magic\n");
+        return;
+    }
     read(fd, &header_size, 2);
     read(fd, &version, 4);
-    if(version < 112 || version > 140) ok_v = 1;
+    if(version < 112 || version > 140){
+        printf("ERROR\n");
+        printf("wrong version\n");
+        return;
+    }
     read(fd, &numar_sectiuni, 1);
-    if(numar_sectiuni < 3 || numar_sectiuni > 17) ok_nr = 1;
-    struct sectiune sect[numar_sectiuni];
+    if(numar_sectiuni < 3 || numar_sectiuni > 17){
+        printf("ERROR\n");
+        printf("wrong sect_nr\n");
+        return;
+    }
+    struct sectiune* sect;
+    sect = (sec*)malloc(numar_sectiuni * sizeof(sec));
     for(int i = 0; i < numar_sectiuni; i++){
         read(fd, sect[i].sect_name, 9);
         sect[i].sect_name[9] = '\0';
@@ -169,37 +185,17 @@ void parse_fct(char s[]){
         read(fd, &sect[i].sect_type, 4);
         read(fd, &sect[i].sect_offset, 4);
         read(fd, &sect[i].sect_size, 4);
-        if(sect[i].sect_type != 88 && sect[i].sect_type !=75 && sect[i].sect_type != 36 && sect[i].sect_type != 85)
-            ok_tip = 1;
-    }
-    if(ok_v == 1 || ok_m == 1 || ok_nr == 1 || ok_tip == 1){
-        int ok = 0;
-        printf("ERROR\n");
-        printf("wrong ");
-        if(ok_m == 1 && ok == 0){ 
-            printf("magic\n");
-            ok++;
-        }
-        if(ok_v == 1 && ok == 0){ 
-            printf("version\n");
-            ok++;
-        }
-        if(ok_nr == 1 && ok == 0){ 
-            printf("sect_nr\n");
-            ok++;
-        }
-        if(ok_tip == 1 && ok == 0){ 
-            printf("sect_types\n");
-            ok = 1;
+        if(sect[i].sect_type != 88 && sect[i].sect_type !=75 && sect[i].sect_type != 36 && sect[i].sect_type != 85){
+            printf("ERROR\n");
+            printf("wrong sect_types\n");
+            return;
         }
     }
-    else{
-        printf("SUCCESS\n");
-        printf("version=%d\n", version);
-        printf("nr_sections=%d\n", numar_sectiuni);
-        for(int i = 0; i < numar_sectiuni; i++){
-            printf("section%d: %s %d %d\n", i+1, sect[i].sect_name, sect[i].sect_type, sect[i].sect_size);
-        }
+    printf("SUCCESS\n");
+    printf("version=%d\n", version);
+    printf("nr_sections=%d\n", numar_sectiuni);
+    for(int i = 0; i < numar_sectiuni; i++){
+        printf("section%d: %s %d %d\n", i+1, sect[i].sect_name, sect[i].sect_type, sect[i].sect_size);
     }
     close(fd);
 }
